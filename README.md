@@ -1,4 +1,4 @@
-# tools
+# Some tools
 Some tools coded in Python.
 
 ## Convert all PDF files in the specified directory into one PDF file
