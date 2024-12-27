@@ -1,0 +1,12 @@
+PyPDF2
+reportlab
+pydub
+
+# install
+# pip install -r requirements.txt
+
+# upgrade
+# pip install --upgrade package1 package2 package3
+
+# upgrade all
+# pip list --outdated --format=freeze | grep -v '^\-e' | cut -d = -f 1 | xargs -n1 pip install -U

@@ -1,6 +1,5 @@
 # pip install PyPDF2
 # pip install reportlab
-
 import os
 from PyPDF2 import PdfReader, PdfWriter
 
@@ -9,16 +8,16 @@ from reportlab.lib.pagesizes import letter
 import io
 
 book_page_number = 1
-book_file_path = r"E:\MIT-Linear-Algebra-Notes-master"
-book_merge_name = 'MIT线性代数.pdf'
+book_file_path = r"E:\your_file_path"
+book_merge_name = 'abc.pdf'
 
 def create_page_number_overlay(page_number):
-    # 创建一个PDF页面，用于存放页码
+    # Create a PDF page to store page numbers
     packet = io.BytesIO()
     can = canvas.Canvas(packet, pagesize=letter)
-    # 设置页码位置
+    # Set page position
     can.setFont("Helvetica", 12)
-    can.drawString(550, 20, f"Page {page_number}")  # 假设使用Letter尺寸，页码放在右下角
+    can.drawString(550, 20, f"Page {page_number}")  # Assuming Letter size is used, the page numbers are placed in the bottom right corner
     can.save()
     packet.seek(0)
     return PdfReader(packet)
@@ -33,26 +32,26 @@ def merge_pdfs(paths, output):
     for path in paths:
         pdf_reader = PdfReader(path)
         for page_number in range(len(pdf_reader.pages)):
-            # # 将每一页添加到PdfFileWriter对象中
+            # # Add each page to the PdfFileWriter object
             # pdf_writer.add_page(pdf_reader.pages[page_number])
             
-            # 获取当前页
+            # Get the current page
             page = pdf_reader.pages[page_number]
-            # 创建页码水印
+            # Create page number watermark
             overlay = create_page_number_overlay(book_page_number)
             book_page_number = book_page_number + 1
-            # 将页码水印添加到页面上
+            # Add page number watermark to the page
             page.merge_page(overlay.pages[0])
-            # 将带有页码的页面添加到PdfFileWriter对象中
+            # Add pages with page numbers to the PdfFileWriter object
             pdf_writer.add_page(page)
     
-    # 创建目录
-    pdf_writer.add_outline_item('目录', 0)  # 目录的根节点
+    # Create catalog 
+    pdf_writer.add_outline_item('Catalog', 0)  # root node
 
-    # 假设每个PDF文件的第一页是章节的开始，添加章节到目录
+    # Assuming that the first page of each PDF file is the beginning of a chapter, add the chapter to the table of contents
     current_page = 0
     
-    # 提取文件名并去除后缀
+    # Extract file names and remove suffixes
     depart_names = get_depart_path(book_file_path)
     
     for i, path in enumerate(paths):
@@ -60,14 +59,14 @@ def merge_pdfs(paths, output):
         chapter_outline = pdf_writer.add_outline_item(f'{depart_names[i]}', current_page)
         current_page += len(pdf_reader.pages)
 
-    # 写入到输出PDF文件
+    # Write to PDF
     with open(output, "wb") as out:
         pdf_writer.write(out)
 
 
 def find_all_pdf_path(folder_path=str):
 
-    # 递归便利文件夹，找到所有的PDF文件，并获取它们的绝对路径
+    # Recursive convenience folder, find all PDF files and obtain their absolute paths
     pdf_files = [
         os.path.join(root, file)
         for root, dirs, files in os.walk(folder_path)
@@ -79,13 +78,13 @@ def find_all_pdf_path(folder_path=str):
 
 def merged_pdf(folder_path=str):
     
-    # 调用函数查询目录下的全部PDF文件路径列表
+    # Call the function to query the list of all PDF file paths in the directory
     pdf_paths = find_all_pdf_path(folder_path=folder_path)
 
-    # 合并后的文件的名称
+    # The name of the merged file
     output_pdf = book_merge_name
 
-    # 调用函数合并PDF
+    # Call a function to merge PDFs
     merge_pdfs(pdf_paths, output_pdf)
     
 def get_depart_path(folder_path=str):
@@ -98,6 +97,6 @@ def get_depart_path(folder_path=str):
 
 if __name__ == "__main__":
     
-    # 合并
+    # Merge
     merged_pdf(folder_path=book_file_path)
     
