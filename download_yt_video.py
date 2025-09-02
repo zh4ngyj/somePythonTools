@@ -133,7 +133,7 @@ def get_impersonate_target():
         return None
     return None
 
-def download_video_with_subtitle(url, output_path=None, merge_subtitles=True, translate_enabled=False):
+def download_video_with_subtitle(url, output_path=None, merge_subtitles=True, translate_enabled=False, browser_cookie=None):
     """
     下载YouTube视频并嵌入中文字幕
     
@@ -142,6 +142,7 @@ def download_video_with_subtitle(url, output_path=None, merge_subtitles=True, tr
         output_path: 输出路径（可选）
         merge_subtitles: 是否合并字幕（可选）
         translate_enabled: 是否启用翻译（可选）
+        browser_cookie: 使用哪个浏览器的cookie（可选）
     """
     import yt_dlp
     
@@ -179,7 +180,6 @@ def download_video_with_subtitle(url, output_path=None, merge_subtitles=True, tr
         'subtitlesformat': 'srt',
         'subtitles_retry': 3,
         'postprocessors': postprocessors,
-        'cookiefile': str(cookie_file) if cookie_file.exists() else None,
         'retries': 10,
         'fragment_retries': 10,
         'retry_sleep': 'linear',
@@ -189,6 +189,16 @@ def download_video_with_subtitle(url, output_path=None, merge_subtitles=True, tr
         'ignoreerrors': False, # Show all errors, especially from post-processing
         'progress_hooks': [progress_hook],
     }
+
+    # 配置Cookie
+    if browser_cookie:
+        print(f"✅ 将尝试从 '{browser_cookie}' 浏览器加载Cookie。")
+        ydl_opts['cookiesfrombrowser'] = (browser_cookie, )
+    elif cookie_file.exists():
+        print(f"✅ 找到 'youtube_cookies.txt' 文件，将使用它进行身份验证。")
+        ydl_opts['cookiefile'] = str(cookie_file)
+    else:
+        print("ℹ️ 未配置Cookie。如果遇到429错误，可以考虑使用Cookie。")
 
     # 动态设置 impersonate
     impersonate_target = get_impersonate_target()
@@ -256,8 +266,13 @@ def download_video_with_subtitle(url, output_path=None, merge_subtitles=True, tr
                 print("   请访问 https://ffmpeg.org/download.html 进行安装。")
             
     except yt_dlp.utils.DownloadError as e:
-        print(f"\n❌ 下载失败: {str(e)}")
-        if "HTTP Error 429" in str(e):
+        error_message = str(e)
+        print(f"\n❌ 下载失败: {error_message}")
+        
+        if "Could not copy Chrome cookie database" in error_message:
+            print("\n💡 提示：这个错误通常是因为您选择的浏览器正在运行。")
+            print(f"   请完全关闭 '{browser_cookie}' 浏览器（包括所有后台进程），然后重试。")
+        elif "HTTP Error 429" in error_message:
             print("\n提示：遇到 'Too Many Requests' 错误。这可能是因为YouTube限制了下载频率。")
             print("   你可以尝试等待一段时间，或使用cookies文件。")
         return False
@@ -360,6 +375,16 @@ def main():
             print("请输入有效的YouTube URL")
             continue
         
+        use_cookies_choice = input("是否使用浏览器Cookie进行身份验证? (y/n, 默认是): ").strip().lower()
+        browser_cookie = None
+        if use_cookies_choice != 'n':
+            print("⚠️ 重要提示: 在继续之前，请完全关闭您要使用的浏览器 (例如 Chrome, Edge)。")
+            print("   否则，Cookie文件可能被锁定，导致身份验证失败。")
+            browser_cookie = input("请输入浏览器名称 (例如 chrome, firefox, edge, opera, vivaldi): ").strip().lower()
+            if not browser_cookie:
+                print("⚠️ 未输入浏览器名称，将不使用Cookie。")
+                browser_cookie = None
+
         custom_path = input("输入下载路径 (直接回车使用默认'downloads'文件夹): ").strip()
         
         merge_choice = input("是否需要合并字幕到视频中？ (y/n, 默认是): ").strip().lower()
@@ -369,7 +394,7 @@ def main():
         translate_enabled = translate_choice == 'y'
 
         output_path = custom_path if custom_path else None
-        success = download_video_with_subtitle(url, output_path, merge_subtitles, translate_enabled)
+        success = download_video_with_subtitle(url, output_path, merge_subtitles, translate_enabled, browser_cookie)
         
         if success:
             choice = input("\n是否继续下载其他视频？(y/n): ").strip().lower()
